@@ -1,4 +1,10 @@
-def load_dataset(Dataset, split=PARAM_VAL):
+import math
+import numpy as np
+import scipy.io as sio
+from sklearn.decomposition import PCA
+
+
+def load_dataset(Dataset, split):
     data_path = '../dataset/'
 
     if Dataset == 'WHU_HC':
