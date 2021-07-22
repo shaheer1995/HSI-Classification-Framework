@@ -1,6 +1,7 @@
 import torch
 import time
 import record
+import matplotlib.pyplot as plt
 
 def train(net,
           train_iter,
@@ -72,6 +73,28 @@ def train(net,
     print('epoch %d, loss %.4f, train acc %.3f, time %.1f sec'
           % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n,
              time.time() - start))
+    x = list(range(1, epochs + 1))
+    y1 = train_loss_list
+    plt.plot(x, y1, color='b')
+    plt.plot()
+    plt.xlabel("epocs")
+    plt.ylabel("Train Loss")
+    plt.title("Training Loss Graph ")
+    plt.show()
+    plt.savefig('./plots/lossgraph')
+    plt.close()
+    y2 = train_acc_list
+    plt.plot(x, y2, color='r')
+    plt.plot()
+    plt.xlabel("epocs")
+    plt.ylabel("Train Accuracy")
+    plt.title("Training Accuracy Graph ")
+    plt.show()
+    plt.savefig('./plots/acc_graph')
+    print(train_loss_list)
+    print('---------------')
+    print(train_acc_list)
+
 
 
 
