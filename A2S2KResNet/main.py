@@ -62,7 +62,7 @@ padded_data = np.lib.pad(
 
 #Load model
 model = models.S3KAIResNet(BAND, CLASSES_NUM, 2,PARAM_KERNEL_SIZE).cuda()
-summary(model, (1, img_rows, img_cols, BAND), 1)
+summary(model, input_data=(1, img_rows, img_cols, BAND), verbose=1)
 
 train_indices, test_indices = utils.sampling(PARAM_VAL,gt)
 
