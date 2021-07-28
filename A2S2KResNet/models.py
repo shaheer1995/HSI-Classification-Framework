@@ -290,16 +290,15 @@ class S3KAIResNet(nn.Module):
             out_channels=kernel_size,
             kernel_size=(3, 3, 7),
             stride=(1, 1, 2),
-            padding=(2, 2, 0),
-            dilation=(2, 2, 1))
+            padding=(1,1,0))
 
         self.conv3x3_2 = nn.Conv3d(
             in_channels=1,
             out_channels=kernel_size,
             kernel_size=(3, 3, 7),
             stride=(1, 1, 2),
-            padding=(3, 3, 0),
-            dilation=(3, 3, 1))
+            padding=(2, 2, 0),
+            dilation=(2, 2, 1))
 
         self.batch_norm1x1 = nn.Sequential(
             nn.BatchNorm3d(
