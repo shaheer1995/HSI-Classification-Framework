@@ -293,13 +293,27 @@ class S3KAIResNet(nn.Module):
             padding=(2, 2, 0),
             dilation=(2, 2, 1))
 
+        self.conv3x3_2 = nn.Conv3d(
+            in_channels=1,
+            out_channels=kernel_size,
+            kernel_size=(3, 3, 7),
+            stride=(1, 1, 2),
+            padding=(3, 3, 0),
+            dilation=(3, 3, 1))
 
         self.batch_norm1x1 = nn.Sequential(
             nn.BatchNorm3d(
                 kernel_size, eps=0.001, momentum=0.1,
                 affine=True),  # 0.1
             nn.ReLU(inplace=True))
+
         self.batch_norm3x3 = nn.Sequential(
+            nn.BatchNorm3d(
+                kernel_size, eps=0.001, momentum=0.1,
+                affine=True),  # 0.1
+            nn.ReLU(inplace=True))
+
+        self.batch_norm3x3_2 = nn.Sequential(
             nn.BatchNorm3d(
                 kernel_size, eps=0.001, momentum=0.1,
                 affine=True),  # 0.1
@@ -360,10 +374,16 @@ class S3KAIResNet(nn.Module):
     def forward(self, X):
         x_1x1 = self.conv1x1(X)
         x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
+
         x_3x3 = self.conv3x3(X)
         x_3x3 = self.batch_norm3x3(x_3x3).unsqueeze(dim=1)
 
-        x1 = torch.cat([x_3x3, x_1x1], dim=1)
+        x_3x3_2 = self.conv3x3_2(X)
+        x_3x3_2 = self.batch_norm3x3_2(x_3x3_2).unsqueeze(dim=1)
+
+        ss = x_3x3 + x_3x3_2
+
+        x1 = torch.cat([ss, x_1x1], dim=1)
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
         Z = self.conv_se(S)
