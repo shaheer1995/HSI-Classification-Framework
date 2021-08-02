@@ -286,14 +286,6 @@ class S3KAIResNet(nn.Module):
             stride=(1, 1, 2),
             padding=0)
 
-        self.conv1x1_2 = nn.Conv3d(
-            in_channels=1,
-            out_channels=kernel_size,
-            kernel_size=(1, 1, 7),
-            stride=(1, 1, 2),
-            padding=(0, 0, 2),
-            dilation=(1, 1, 2))
-
         self.conv3x3 = nn.Conv3d(
             in_channels=1,
             out_channels=kernel_size,
@@ -309,14 +301,14 @@ class S3KAIResNet(nn.Module):
             padding=(2, 2, 0),
             dilation=(2, 2, 1))
 
+        self.conv5x5 = nn.Conv3d(
+            in_channels=1,
+            out_channels=kernel_size,
+            kernel_size=(5, 5, 7),
+            stride=(1, 1, 2),
+            padding=(2, 2, 0))
 
         self.batch_norm1x1 = nn.Sequential(
-            nn.BatchNorm3d(
-                kernel_size, eps=0.001, momentum=0.1,
-                affine=True),  # 0.1
-            nn.ReLU(inplace=True))
-
-        self.batch_norm1x1_2 = nn.Sequential(
             nn.BatchNorm3d(
                 kernel_size, eps=0.001, momentum=0.1,
                 affine=True),  # 0.1
@@ -329,6 +321,12 @@ class S3KAIResNet(nn.Module):
             nn.ReLU(inplace=True))
 
         self.batch_norm3x3_2 = nn.Sequential(
+            nn.BatchNorm3d(
+                kernel_size, eps=0.001, momentum=0.1,
+                affine=True),  # 0.1
+            nn.ReLU(inplace=True))
+
+        self.batch_norm5x5 = nn.Sequential(
             nn.BatchNorm3d(
                 kernel_size, eps=0.001, momentum=0.1,
                 affine=True),  # 0.1
@@ -390,16 +388,16 @@ class S3KAIResNet(nn.Module):
         x_1x1 = self.conv1x1(X)
         x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
 
-        x_1x1_2 = self.conv1x1(X)
-        x_1x1_2 = self.batch_norm1x1_2(x_1x1_2).unsqueeze(dim=1)
-
         x_3x3 = self.conv3x3(X)
         x_3x3 = self.batch_norm3x3(x_3x3).unsqueeze(dim=1)
 
         x_3x3_2 = self.conv3x3_2(X)
         x_3x3_2 = self.batch_norm3x3_2(x_3x3_2).unsqueeze(dim=1)
 
-        x1 = x_1x1 + x_1x1_2 + x_3x3 + x_3x3_2
+        x_5x5 = self.conv5x5(X)
+        x_5x5 = self.batch_norm3x3_2(x_5x5).unsqueeze(dim=1)
+
+        x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
