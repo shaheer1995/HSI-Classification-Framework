@@ -274,6 +274,52 @@ class Residual(nn.Module):  # pytorch
 
         return out
 
+
+class gatedNetwork(nn.Module):
+    def __init__(self, PARAM_KERNEL_SIZE):
+        super(gatedNetwork, self).__init__()
+
+        self.conv1 = nn.Conv3d(
+            in_channels=PARAM_KERNEL_SIZE,
+            out_channels=PARAM_KERNEL_SIZE,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
+            padding=0)
+
+        self.conv2 = nn.Conv3d(
+            in_channels=PARAM_KERNEL_SIZE,
+            out_channels=PARAM_KERNEL_SIZE,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
+            padding=0)
+
+        self.batch_norm1 = nn.Sequential(
+            nn.BatchNorm3d(
+                PARAM_KERNEL_SIZE, eps=0.001, momentum=0.1,
+                affine=True))
+
+        self.batch_norm2 = nn.Sequential(
+            nn.BatchNorm3d(
+                PARAM_KERNEL_SIZE, eps=0.001, momentum=0.1,
+                affine=True))
+
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x, y):
+        x = self.conv1(x)
+        x = self.batch_norm1(x).unsqueeze(dim=1)
+
+        y = self.conv1(y)
+        y = self.batch_norm1(y).unsqueeze(dim=1)
+
+        X = x + y
+        X = self.sigmoid(X)
+
+        z1 = X * y
+        z2 = x * (1 - X)
+        Z = z1 + z2
+        return Z
+
 class S3KAIResNet(nn.Module):
     def __init__(self, band, classes, reduction,kernel_size):
         super(S3KAIResNet, self).__init__()
@@ -332,6 +378,8 @@ class S3KAIResNet(nn.Module):
                 affine=True),  # 0.1
             nn.ReLU(inplace=True))
 
+        self.gatedNetwork = gatedNetwork(kernel_size)
+
         self.pool = nn.AdaptiveAvgPool3d(1)
         self.conv_se = nn.Sequential(
             nn.Conv3d(
@@ -386,18 +434,20 @@ class S3KAIResNet(nn.Module):
 
     def forward(self, X):
         x_1x1 = self.conv1x1(X)
-        x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
+        x_1x1 = self.batch_norm1x1(x_1x1)
 
         x_3x3 = self.conv3x3(X)
-        x_3x3 = self.batch_norm3x3(x_3x3).unsqueeze(dim=1)
+        x_3x3 = self.batch_norm3x3(x_3x3)
 
         x_3x3_2 = self.conv3x3_2(X)
-        x_3x3_2 = self.batch_norm3x3_2(x_3x3_2).unsqueeze(dim=1)
+        x_3x3_2 = self.batch_norm3x3_2(x_3x3_2)
 
         x_5x5 = self.conv5x5(X)
-        x_5x5 = self.batch_norm3x3_2(x_5x5).unsqueeze(dim=1)
+        x_5x5 = self.batch_norm3x3_2(x_5x5)
 
-        x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
+        # x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
+
+        x1 = self.gatedNetwork.forward(x_1x1, x_3x3)
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
