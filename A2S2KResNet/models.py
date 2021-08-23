@@ -332,8 +332,6 @@ class spatialGatedNetwork(nn.Module):
         Y = self.gatedNetwork2.forward(c, d).squeeze(dim=1)
 
         Z = self.gatedNetwork3.forward(X, Y)
-        print(a.shape, b.shape, c.shape, d.shape)
-        print(X.shape, Y.shape, Z.shape)
 
         return Z
 
