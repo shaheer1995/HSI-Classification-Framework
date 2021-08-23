@@ -274,7 +274,6 @@ class Residual(nn.Module):  # pytorch
 
         return out
 
-
 class gatedNetwork(nn.Module):
     def __init__(self, PARAM_KERNEL_SIZE):
         super(gatedNetwork, self).__init__()
@@ -320,6 +319,24 @@ class gatedNetwork(nn.Module):
         Z = z1 + z2
         return Z
 
+class spatialGatedNetwork(nn.Module):
+    def __init__(self, PARAM_KERNEL_SIZE):
+        super(spatialGatedNetwork, self).__init__()
+
+        self.gatedNetwork1 = gatedNetwork(PARAM_KERNEL_SIZE)
+        self.gatedNetwork2 = gatedNetwork(PARAM_KERNEL_SIZE)
+        self.gatedNetwork3 = gatedNetwork(PARAM_KERNEL_SIZE)
+
+    def forward(self, a, b, c, d):
+        X = self.gatedNetwork1.forward(a, b).squeeze(dim=1)
+        Y = self.gatedNetwork2.forward(c, d).squeeze(dim=1)
+
+        Z = self.gatedNetwork3.forward(X, Y)
+        print(a.shape, b.shape, c.shape, d.shape)
+        print(X.shape, Y.shape, Z.shape)
+
+        return Z
+
 class S3KAIResNet(nn.Module):
     def __init__(self, band, classes, reduction,kernel_size):
         super(S3KAIResNet, self).__init__()
@@ -347,6 +364,14 @@ class S3KAIResNet(nn.Module):
             padding=(2, 2, 0),
             dilation=(2, 2, 1))
 
+        self.conv3x3_3 = nn.Conv3d(
+            in_channels=1,
+            out_channels=kernel_size,
+            kernel_size=(3, 3, 7),
+            stride=(1, 1, 2),
+            padding=(3, 3, 0),
+            dilation=(3, 3, 1))
+
         self.conv5x5 = nn.Conv3d(
             in_channels=1,
             out_channels=kernel_size,
@@ -372,13 +397,19 @@ class S3KAIResNet(nn.Module):
                 affine=True),  # 0.1
             nn.ReLU(inplace=True))
 
+        self.batch_norm3x3_3 = nn.Sequential(
+            nn.BatchNorm3d(
+                kernel_size, eps=0.001, momentum=0.1,
+                affine=True),  # 0.1
+            nn.ReLU(inplace=True))
+
         self.batch_norm5x5 = nn.Sequential(
             nn.BatchNorm3d(
                 kernel_size, eps=0.001, momentum=0.1,
                 affine=True),  # 0.1
             nn.ReLU(inplace=True))
 
-        self.gatedNetwork = gatedNetwork(kernel_size)
+        self.gatedNetwork = spatialGatedNetwork(kernel_size)
 
         self.pool = nn.AdaptiveAvgPool3d(1)
         self.conv_se = nn.Sequential(
@@ -442,12 +473,15 @@ class S3KAIResNet(nn.Module):
         x_3x3_2 = self.conv3x3_2(X)
         x_3x3_2 = self.batch_norm3x3_2(x_3x3_2)
 
+        x_3x3_3 = self.conv3x3_3(X)
+        x_3x3_3 = self.batch_norm3x3_3(x_3x3_2)
+
         x_5x5 = self.conv5x5(X)
         x_5x5 = self.batch_norm3x3_2(x_5x5)
 
         # x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
 
-        x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
+        x_1 = self.gatedNetwork.forward(x_3x3, x_5x5, x_3x3_2, x_3x3_3)
 
         x1 = x_1 + x_1x1
 
