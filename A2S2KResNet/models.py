@@ -434,7 +434,7 @@ class S3KAIResNet(nn.Module):
 
     def forward(self, X):
         x_1x1 = self.conv1x1(X)
-        x_1x1 = self.batch_norm1x1(x_1x1)
+        x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
 
         x_3x3 = self.conv3x3(X)
         x_3x3 = self.batch_norm3x3(x_3x3)
@@ -449,7 +449,7 @@ class S3KAIResNet(nn.Module):
 
         x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
 
-        x1 = x_1x1 + x_1
+        x1 = x_1 + x_1x1
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
