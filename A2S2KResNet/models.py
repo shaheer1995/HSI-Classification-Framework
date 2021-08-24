@@ -407,7 +407,7 @@ class S3KAIResNet(nn.Module):
                 affine=True),  # 0.1
             nn.ReLU(inplace=True))
 
-        self.gatedNetwork = spatialGatedNetwork(kernel_size)
+        self.gatedNetwork = gatedNetwork(kernel_size)
 
         self.pool = nn.AdaptiveAvgPool3d(1)
         self.conv_se = nn.Sequential(
@@ -479,9 +479,11 @@ class S3KAIResNet(nn.Module):
 
         # x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
 
-        x_1 = self.gatedNetwork.forward(x_3x3, x_5x5, x_3x3_2, x_3x3_3)
-
-        x1 = x_1 + x_1x1
+        x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
+        x_2 = self.gatedNetwork.forward(x_3x3_2, x_5x5)
+        
+        
+        x1 = x_1 + x_2 + x_1x1
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
