@@ -482,8 +482,24 @@ class S3KAIResNet(nn.Module):
         x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
         x_2 = self.gatedNetwork.forward(x_3x3_2, x_5x5)
         
-        
-        x1 = x_1 + x_2 + x_1x1
+        #Attention model for spatial feature fusion
+
+        c = torch.cat([x_3x3, x_5x5], dim=1)
+        u1 = torch.sum(c, dim=1)
+        s1 = self.pool(u1)
+        z1 = self.conv_se(s1)
+        att_v = torch.cat(
+            [
+                self.conv_ex(z1).unsqueeze(dim=1),
+                self.conv_ex(z1).unsqueeze(dim=1)
+            ],
+            dim=1)
+        att_v = self.softmax(att_v)
+        v = (c * att_v).sum(dim=1)
+
+        x1 = x_1x1 + v
+
+        # x1 = x_1 + x_2 + x_1x1
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
