@@ -479,8 +479,8 @@ class S3KAIResNet(nn.Module):
 
         # x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
 
-        x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
-        x_2 = self.gatedNetwork.forward(x_3x3_2, x_5x5)
+        # x_1 = self.gatedNetwork.forward(x_3x3, x_5x5)
+        # x_2 = self.gatedNetwork.forward(x_3x3_2, x_5x5)
         
         #Attention model for spatial feature fusion
 
