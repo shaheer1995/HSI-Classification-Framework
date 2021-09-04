@@ -466,16 +466,16 @@ class S3KAIResNet(nn.Module):
         x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
 
         x_3x3 = self.conv3x3(X)
-        x_3x3 = self.batch_norm3x3(x_3x3)
+        x_3x3 = self.batch_norm3x3(x_3x3).unsqueeze(dim=1)
 
         x_3x3_2 = self.conv3x3_2(X)
         x_3x3_2 = self.batch_norm3x3_2(x_3x3_2)
 
         x_3x3_3 = self.conv3x3_3(X)
-        x_3x3_3 = self.batch_norm3x3_3(x_3x3_2)
+        x_3x3_3 = self.batch_norm3x3_3(x_3x3_3)
 
         x_5x5 = self.conv5x5(X)
-        x_5x5 = self.batch_norm3x3_2(x_5x5)
+        x_5x5 = self.batch_norm3x3_2(x_5x5).unsqueeze(dim=1)
 
         # x1 = x_1x1 + x_3x3 + x_3x3_2 + x_5x5
 
