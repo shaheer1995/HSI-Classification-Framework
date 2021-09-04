@@ -495,9 +495,9 @@ class S3KAIResNet(nn.Module):
             ],
             dim=1)
         att_v = self.softmax(att_v)
-        v = (c * att_v).sum(dim=1)
+        v = (c * att_v).sum(dim=1).unsqueeze(dim=1)
 
-        x1 = x_1x1 + v
+        x1 = torch.cat([x_1x1, v], dim=1)
 
         # x1 = x_1 + x_2 + x_1x1
 
