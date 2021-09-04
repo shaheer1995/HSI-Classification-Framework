@@ -335,6 +335,36 @@ class spatialGatedNetwork(nn.Module):
 
         return Z
 
+class selfAttention(nn.Module):
+    def __init__(self, band, reduction, PARAM_KERNEL_SIZE):
+
+      super(selfAttention, self).__init__()
+
+      self.pool = nn.AdaptiveAvgPool3d(1)
+      self.conv_se = nn.Sequential(
+          nn.Conv3d(
+              PARAM_KERNEL_SIZE, band // reduction, 1, padding=0, bias=True),
+          nn.ReLU(inplace=True))
+      self.conv_ex = nn.Conv3d(
+          band // reduction, PARAM_KERNEL_SIZE, 1, padding=0, bias=True)
+      self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, v1,v2):
+      c = torch.cat([v1,v2], dim=1)
+      u1 = torch.sum(c, dim=1)
+      s1 = self.pool(u1)
+      z1 = self.conv_se(s1)
+      att_v = torch.cat(
+          [
+              self.conv_ex(z1).unsqueeze(dim=1),
+              self.conv_ex(z1).unsqueeze(dim=1)
+          ],
+          dim=1)
+      att_v = self.softmax(att_v)
+      v = (c * att_v).sum(dim=1).unsqueeze(dim=1)
+
+      return v
+
 class S3KAIResNet(nn.Module):
     def __init__(self, band, classes, reduction,kernel_size):
         super(S3KAIResNet, self).__init__()
@@ -408,6 +438,7 @@ class S3KAIResNet(nn.Module):
             nn.ReLU(inplace=True))
 
         self.gatedNetwork = gatedNetwork(kernel_size)
+        self.selfAttention = selfAttention(band, reduction, kernel_size)
 
         self.pool = nn.AdaptiveAvgPool3d(1)
         self.conv_se = nn.Sequential(
@@ -463,7 +494,7 @@ class S3KAIResNet(nn.Module):
 
     def forward(self, X):
         x_1x1 = self.conv1x1(X)
-        x_1x1 = self.batch_norm1x1(x_1x1).unsqueeze(dim=1)
+        x_1x1 = self.batch_norm1x1(x_1x1)
 
         x_3x3 = self.conv3x3(X)
         x_3x3 = self.batch_norm3x3(x_3x3).unsqueeze(dim=1)
@@ -483,23 +514,9 @@ class S3KAIResNet(nn.Module):
         # x_2 = self.gatedNetwork.forward(x_3x3_2, x_5x5)
         
         #Attention model for spatial feature fusion
+        v = self.selfAttention.forward(x_3x3, x_5x5).squeeze(dim=1)
+        x1 = self.gatedNetwork.forward(x_1x1, v)
 
-        c = torch.cat([x_3x3, x_5x5], dim=1)
-        u1 = torch.sum(c, dim=1)
-        s1 = self.pool(u1)
-        z1 = self.conv_se(s1)
-        att_v = torch.cat(
-            [
-                self.conv_ex(z1).unsqueeze(dim=1),
-                self.conv_ex(z1).unsqueeze(dim=1)
-            ],
-            dim=1)
-        att_v = self.softmax(att_v)
-        v = (c * att_v).sum(dim=1).unsqueeze(dim=1)
-
-        x1 = torch.cat([x_1x1, v], dim=1)
-
-        # x1 = x_1 + x_2 + x_1x1
 
         U = torch.sum(x1, dim=1)
         S = self.pool(U)
